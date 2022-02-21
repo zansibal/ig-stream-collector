@@ -1,2 +1,2 @@
-# ig_stream_downloader
+# ig-stream-downloader
 Save and store streamed data from broker IG
