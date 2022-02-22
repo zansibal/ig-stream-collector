@@ -185,8 +185,6 @@ class DataSet():
         global last_streaming_update
         last_streaming_update = dt.datetime.now()
 
-        print(update)
-
         if self._check_instrument(update):
             if self._consolidated(update):
                 logging.debug(f'{self.instrument} consolidated streaming update received')
