@@ -13,6 +13,7 @@ munch = "*"
 tenacity = "*"
 watchtower = "*"
 pyarrow = "*"
+crypto = "*"
 
 [dev-packages]
 
