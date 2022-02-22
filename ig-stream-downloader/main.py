@@ -119,6 +119,8 @@ class CollectStream():
         """
         if timeframe not in self.TIMEFRAMES_STREAMING: raise ValueError('Not a valid timeframe for Streaming API')
 
+        logging.info(f'Subscribing to {instrument}')
+
         subscription = Subscription(
             mode = 'MERGE',
             items = ['CHART:' + instrument + ':' + timeframe],
@@ -136,6 +138,12 @@ class DataSet():
     """Stateful dataset made up of streamed data."""
 
     def __init__(self, instrument, path):
+        """Intialize.
+
+        Args:
+            instrument (str): Instrument name.
+            path (str): Path to store data.
+        """
         self.df = pd.DataFrame()
         self.instrument = instrument
         self.path = os.path.join(path, instrument)
@@ -176,6 +184,8 @@ class DataSet():
         """
         global last_streaming_update
         last_streaming_update = dt.datetime.now()
+
+        print(update)
 
         if self._check_instrument(update):
             if self._consolidated(update):
@@ -241,9 +251,16 @@ def send_notification(subject, message):
 
 
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.INFO)
-    logger = logging.getLogger(__name__)
-    logger.addHandler(watchtower.CloudWatchLogHandler())
+    logging.basicConfig(
+        level = logging.INFO,
+        format = '%(asctime)s %(levelname)s %(message)s',
+        handlers = [
+            watchtower.CloudWatchLogHandler(
+                log_group_name='ig-streaming-service',
+                level=logging.INFO),
+            logging.StreamHandler(), # Prints to stdout
+        ],
+    )
 
     with open('instruments.yaml', 'r') as f:
         instruments = yaml.load(f, Loader=yaml.FullLoader)
@@ -264,6 +281,7 @@ if __name__ == '__main__':
         while not (now.weekday() == 4 and now.hour == 23 and now.minute >= 1):
             # Save down data every hour
             if now.minute == 0:
+                logging.info('Saving data to disk')
                 for dataset in datasets.values():
                     dataset.to_feather(compression=compression)
 
@@ -273,18 +291,19 @@ if __name__ == '__main__':
                     logging.warning(f'Streaming of data ceased.')
                     send_notification(
                         'Streaming ceased', 
-                        f'Initializing connection for the {collector.cur_init+1} time'
+                        f'Streaming ceased. Initializing connection for the {collector.cur_init+1} time'
                     )
 
                     last_streaming_update = None
-                    collector.reinit()
+                    collector.reinit() # Verified manually that it works
+            else:
+                logging.info('last_streaming_update is None')
 
             time.sleep(59)
             now = dt.datetime.now()
     except KeyboardInterrupt:
         # Interrupt loop with Ctrl+C
         logging.warning('Keyboard interrupt')
-        pass
 
     for dataset in datasets.values():
         dataset.to_feather(compression=compression)
