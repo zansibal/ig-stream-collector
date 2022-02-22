@@ -5,7 +5,14 @@ name = "pypi"
 
 [packages]
 pandas = "*"
-trading-ig = "*"
+apscheduler = "*"
+boto3 = "*"
+trading-ig = {ref = "quick_fix", git = "https://github.com/zansibal/ig-markets-api-python-library.git"}
+pyyaml = "*"
+munch = "*"
+tenacity = "*"
+watchtower = "*"
+pyarrow = "*"
 
 [dev-packages]
 
