@@ -162,7 +162,7 @@ class DataSet():
         """
         if not os.path.exists(path):
             logging.info(f'Creating destination folder {path}... (not found)')
-            os.mkdir(path)
+            os.makedirs(path)
 
     def to_feather(self, compression=None):
         """Save current dataframe to disk in feather format.
