@@ -13,7 +13,7 @@ munch = "*"
 tenacity = "*"
 watchtower = "*"
 pyarrow = "*"
-pycrypto = "*"
+pycryptodome = "*"
 
 [dev-packages]
 
