@@ -328,7 +328,7 @@ if __name__ == '__main__':
         now = dt.datetime.now()
         while not (now.weekday() == 4 and now.hour == 23 and now.minute >= 1):
             # Save down data every hour
-            if now.minute == 0:
+            if now.minute == 0: # DEBUG
                 logging.info('Saving data to disk')
                 for dataset in datasets_1.values():
                     dataset.to_feather(compression=compression)
