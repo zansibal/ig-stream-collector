@@ -372,14 +372,14 @@ if __name__ == '__main__':
     collector = CollectStream()
     compression = 'lz4'
 
-    # Subscribe to instruments for 1 minute candles
-    datasets_1 = {}
-    for instrument in instruments:
-        datasets_1[instrument] = DataSet(
-            instrument, 
-            os.path.join(os.path.expanduser('~'), 'data', '1'),
-            compression)
-        collector.subscribe_candle_data_stream(datasets_1[instrument].callback_candle, instrument, '1MINUTE')
+    # # Subscribe to instruments for 1 minute candles
+    # datasets_1 = {}
+    # for instrument in instruments:
+    #     datasets_1[instrument] = DataSet(
+    #         instrument, 
+    #         os.path.join(os.path.expanduser('~'), 'data', '1'),
+    #         compression)
+    #     collector.subscribe_candle_data_stream(datasets_1[instrument].callback_candle, instrument, '1MINUTE')
 
     # Subscribe to instruments for tick data
     datasets_tick = {}
@@ -400,7 +400,7 @@ if __name__ == '__main__':
                     logging.warning(f'Streaming of data ceased.')
                     send_notification(
                         'Streaming ceased', 
-                        f'Streaming ceased. Initializing connection for the {collector.cur_init+1} time'
+                        f'Streaming ceased. Initializing connection ({collector.cur_init+1} times).'
                     )
 
                     last_streaming_update = None
@@ -425,8 +425,8 @@ if __name__ == '__main__':
         logging.warning('Keyboard interrupt')
 
     logging.info('Saving data buffer to disk before disconnecting')
-    for dataset in datasets_1.values():
-        dataset.to_feather()
+    # for dataset in datasets_1.values():
+    #     dataset.to_feather()
 
     for dataset in datasets_tick.values():
         dataset.to_feather()
