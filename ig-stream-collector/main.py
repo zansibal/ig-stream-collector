@@ -175,6 +175,7 @@ class DataSet():
         self.filepath = os.path.join(self.path, self.filename + '.ftr')
 
         self.check_path(self.path)
+        self.resume_file(self.filepath)
 
     def check_path(self, path):
         """Check if save path exists. Create otherwise.
@@ -185,10 +186,17 @@ class DataSet():
         if not os.path.exists(path):
             logging.info(f'Creating destination folder {path}... (not found)')
             os.makedirs(path)
-        elif os.path.exists(self.filepath):
-            # Continue on file if collection was interrupted
-            self.df = pd.read_feather(self.filepath)
-            self.df = self.df.set_index(self.df.columns[0])
+
+    def resume_file(self, path):
+        """Check if datafile exists. If yes, load data to resume collection.
+        
+        Args:
+            path (str): Datafile full path.
+        """
+        if os.path.exists(path):
+            logging.info(f'Resuming collection on {path}')
+            dft = pd.read_feather(path)
+            self.df = dft.set_index(dft.columns[0])
 
     def to_feather(self, compression=None):
         """Save current dataframe to disk in feather format.
