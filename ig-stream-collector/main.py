@@ -267,8 +267,12 @@ class DataSet():
                 logging.debug(f'{self.instrument} consolidated streaming update received')
 
                 # Ok, so we preprocess the timestamp, but that's all
-                timestamp = dt.datetime.fromtimestamp(float(update['values']['UTM'])/1000) # local time of bar start time
-                self.df = pd.concat([self.df, pd.DataFrame(update['values'], index=[timestamp])])
+                try:
+                    timestamp = dt.datetime.fromtimestamp(float(update['values']['UTM'])/1000) # local time of bar start time
+                except TypeError as e:
+                    logging.warning(f'{self.instrument} incorrect update from IG: {e}')
+                else:
+                    self.df = pd.concat([self.df, pd.DataFrame(update['values'], index=[timestamp])])
 
                 try:
                     self.dump_to_disk(self.df.index[-1], self.df.index[-2])
@@ -291,8 +295,12 @@ class DataSet():
             logging.debug(f'{self.instrument} streaming tick update received')
 
             # Ok, so we preprocess the timestamp, but that's all
-            timestamp = dt.datetime.fromtimestamp(float(update['values']['UTM'])/1000) # local time of bar start time
-            self.df = pd.concat([self.df, pd.DataFrame(update['values'], index=[timestamp])])
+            try:
+                timestamp = dt.datetime.fromtimestamp(float(update['values']['UTM'])/1000) # local time of bar start time
+            except TypeError as e:
+                logging.warning(f'{self.instrument} incorrect update from IG: {e}')
+            else:
+                self.df = pd.concat([self.df, pd.DataFrame(update['values'], index=[timestamp])])
 
             try:
                 self.dump_to_disk(self.df.index[-1], self.df.index[-2])
