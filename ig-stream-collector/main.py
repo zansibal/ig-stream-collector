@@ -156,27 +156,43 @@ class CollectStream():
 
 
 class DataSet():
-    """Stateful dataset made up of streamed data."""
+    """Stateful dataset made up of streamed data.
+    
+    We save data every hour to minimize RAM footprint. This makes it possible
+    to use a very small low-cost online computational instance."""
 
-    def __init__(self, instrument, path):
+    def __init__(self, instrument, path, compression):
         """Intialize.
 
         Args:
             instrument (str): Instrument name.
-            path (str): Path to store data.
+            path (str): Path to store data. For instance '~/data/tick'. Instrument path is appended.
+            compression (str): Compression standard to use. One of {“zstd”, “lz4”, “uncompressed”}.
+                The default of None uses LZ4 for V2 files if it is available, otherwise uncompressed.
         """
         self.df = pd.DataFrame()
         self.instrument = instrument
         self.path = os.path.join(path, instrument)
-
-        # Every week has different filename
-        now = dt.datetime.now()
-        # Filename: instrument_year_weeknumber. Weeknumber is zero-padded and week starts on Sunday (very good in this case)
-        self.filename = f'{instrument}_{now.year}_W{now.strftime("%U")}'
-        self.filepath = os.path.join(self.path, f'{self.filename}.ftr')
+        self.compression = compression
 
         self.check_path(self.path)
-        self.resume_file(self.filepath)
+        self.resume_file(self.get_filepath(dt.datetime.now()))
+
+    def get_filename(self, timestamp):
+        """Get filename based on timestamp. Format: instrument_year-month-day-hour.ftr
+        
+        Args:
+            timestamp (datetime64): Timestamp of one (usually last) sample in data.
+        """
+        return f'{self.instrument}_{timestamp.strftime("%Y-%m-%d_%H-00")}.ftr'
+
+    def get_filepath(self, timestamp):
+        """Get filepath based on timestamp. Format: instrument_year-month-day-hour.ftr
+        
+        Args:
+            timestamp (datetime64): Timestamp of one (usually last) sample in data.
+        """
+        return os.path.join(self.path, self.get_filename(timestamp))
 
     def check_path(self, path):
         """Check if save path exists. Create otherwise.
@@ -199,14 +215,40 @@ class DataSet():
             dft = pd.read_feather(path)
             self.df = dft.set_index(dft.columns[0])
 
-    def to_feather(self, compression=None):
-        """Save current dataframe to disk in feather format.
+    def dump_to_disk(self, cur_ts, prev_ts):
+        """Check if it is time to dump data from RAM to disk.
+        If so, also save and empty dataframe.
         
         Args:
-            compression (str): Compression standard to use. One of {“zstd”, “lz4”, “uncompressed”}.
-                The default of None uses LZ4 for V2 files if it is available, otherwise uncompressed.
+            cur_ts (datetime64): Most recent timestamp.
+            prev_ts (datetime64): Previous timestamp.
         """
-        self.df.reset_index().to_feather(self.filepath, compression=compression)
+        if not cur_ts.hour == prev_ts.hour:
+            # We save data every hour to save RAM (necessary for tick data, but do the same for candles)
+            self.to_feather(self.df.iloc[:-1], prev_ts)
+
+            # Clean DataFrame in RAM
+            self.df = self.df.iloc[[-1]] # Double brackets return DataFrame instead of Series
+
+    def to_feather(self, df=None, timestamp=None):
+        """Write DataFrame to disk in feather format.
+        
+        Args:
+            df (DataFrame): DataFrame to save. Default None saves self.df.
+            timestamp (datetime64): Timestamp to create filename from. Default None uses
+                last index in df.
+        """
+        if df is None:
+            df = self.df
+
+        if timestamp is None:
+            try:
+                timestamp = df.index[-1]
+            except IndexError:
+                # Nothing to save
+                return
+
+        df.reset_index().to_feather(self.get_filepath(timestamp), compression=self.compression)
 
     def callback_candle(self, update):
         """Retrieve stream of candle stick type data.
@@ -228,6 +270,11 @@ class DataSet():
                 timestamp = dt.datetime.fromtimestamp(float(update['values']['UTM'])/1000) # local time of bar start time
                 self.df = pd.concat([self.df, pd.DataFrame(update['values'], index=[timestamp])])
 
+                try:
+                    self.dump_to_disk(self.df.index[-1], self.df.index[-2])
+                except IndexError:
+                    logging.debug('Not big enough index during first callback')
+
     def callback_tick(self, update):
         """Retrieve stream of candle stick type data.
 
@@ -246,6 +293,11 @@ class DataSet():
             # Ok, so we preprocess the timestamp, but that's all
             timestamp = dt.datetime.fromtimestamp(float(update['values']['UTM'])/1000) # local time of bar start time
             self.df = pd.concat([self.df, pd.DataFrame(update['values'], index=[timestamp])])
+
+            try:
+                self.dump_to_disk(self.df.index[-1], self.df.index[-2])
+            except IndexError:
+                logging.debug('Not big enough index during first callback')
 
     def _check_instrument(self, update):
         """Check that update's instrument is correct.
@@ -323,28 +375,25 @@ if __name__ == '__main__':
     # Subscribe to instruments for 1 minute candles
     datasets_1 = {}
     for instrument in instruments:
-        datasets_1[instrument] = DataSet(instrument, os.path.join(os.path.expanduser('~'), 'data', '1'))
+        datasets_1[instrument] = DataSet(
+            instrument, 
+            os.path.join(os.path.expanduser('~'), 'data', '1'),
+            compression)
         collector.subscribe_candle_data_stream(datasets_1[instrument].callback_candle, instrument, '1MINUTE')
 
     # Subscribe to instruments for tick data
     datasets_tick = {}
     for instrument in instruments:
-        datasets_tick[instrument] = DataSet(instrument, os.path.join(os.path.expanduser('~'), 'data', 'tick'))
+        datasets_tick[instrument] = DataSet(
+            instrument, 
+            os.path.join(os.path.expanduser('~'), 'data', 'tick'),
+            compression)
         collector.subscribe_tick_data_stream(datasets_tick[instrument].callback_tick, instrument)
 
     # Loop until market closes on Friday 23:00 local time
     try:
         now = dt.datetime.now()
         while not (now.weekday() == 4 and now.hour == 23 and now.minute >= 1):
-            # Save down data every hour
-            if now.minute == 0: # DEBUG
-                logging.info('Saving data to disk')
-                for dataset in datasets_1.values():
-                    dataset.to_feather(compression=compression)
-
-                for dataset in datasets_tick.values():
-                    dataset.to_feather(compression=compression)
-
             # Check streaming status
             if last_streaming_update is not None:
                 if (now-last_streaming_update).total_seconds() > MAX_PAUSE_STREAMING:
@@ -364,20 +413,22 @@ if __name__ == '__main__':
                             'Max reinits reached', 
                             f'Max reinits reached {collector.MAX_REINITS}. Exiting.'
                         )
+                        break
             else:
-                logging.info('last_streaming_update is None')
+                logging.warning('last_streaming_update is None')
 
-            time.sleep(59)
+            time.sleep(30)
             now = dt.datetime.now()
+
     except KeyboardInterrupt:
         # Interrupt loop with Ctrl+C
         logging.warning('Keyboard interrupt')
 
-    logging.info('Saving data once more before disconnecting')
+    logging.info('Saving data buffer to disk before disconnecting')
     for dataset in datasets_1.values():
-        dataset.to_feather(compression=compression)
+        dataset.to_feather()
 
     for dataset in datasets_tick.values():
-        dataset.to_feather(compression=compression)
+        dataset.to_feather()
 
     collector.disconnect()
