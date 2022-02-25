@@ -270,7 +270,7 @@ class DataSet():
                 try:
                     timestamp = dt.datetime.fromtimestamp(float(update['values']['UTM'])/1000) # local time of bar start time
                 except TypeError as e:
-                    logging.warning(f'{self.instrument} incorrect update from IG: {e}')
+                    logging.debug(f'{self.instrument} incorrect update from IG: {e}')
                 else:
                     self.df = pd.concat([self.df, pd.DataFrame(update['values'], index=[timestamp])])
 
@@ -298,7 +298,7 @@ class DataSet():
             try:
                 timestamp = dt.datetime.fromtimestamp(float(update['values']['UTM'])/1000) # local time of bar start time
             except TypeError as e:
-                logging.warning(f'{self.instrument} incorrect update from IG: {e}')
+                logging.debug(f'{self.instrument} incorrect update from IG: {e}')
             else:
                 self.df = pd.concat([self.df, pd.DataFrame(update['values'], index=[timestamp])])
 
