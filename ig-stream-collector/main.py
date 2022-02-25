@@ -171,8 +171,9 @@ class DataSet():
 
         # Every week has different filename
         now = dt.datetime.now()
-        self.filename = f'{instrument}_{now.year}_W{now.isocalendar()[1]:02}' # instrument_year_weeknumber
-        self.filepath = os.path.join(self.path, self.filename + '.ftr')
+        # Filename: instrument_year_weeknumber. Weeknumber is zero-padded and week starts on Sunday (very good in this case)
+        self.filename = f'{instrument}_{now.year}_W{now.strftime("%U")}'
+        self.filepath = os.path.join(self.path, f'{self.filename}.ftr')
 
         self.check_path(self.path)
         self.resume_file(self.filepath)
