@@ -172,6 +172,7 @@ class DataSet():
         # Every week has different filename
         now = dt.datetime.now()
         self.filename = f'{instrument}_{now.year}_W{now.isocalendar()[1]:02}' # instrument_year_weeknumber
+        self.filepath = os.path.join(self.path, self.filename + '.ftr')
 
         self.check_path(self.path)
 
@@ -184,6 +185,10 @@ class DataSet():
         if not os.path.exists(path):
             logging.info(f'Creating destination folder {path}... (not found)')
             os.makedirs(path)
+        elif os.path.exists(self.filepath):
+            # Continue on file if collection was interrupted
+            self.df = pd.read_feather(self.filepath)
+            self.df = self.df.set_index(self.df.columns[0])
 
     def to_feather(self, compression=None):
         """Save current dataframe to disk in feather format.
@@ -192,7 +197,7 @@ class DataSet():
             compression (str): Compression standard to use. One of {“zstd”, “lz4”, “uncompressed”}.
                 The default of None uses LZ4 for V2 files if it is available, otherwise uncompressed.
         """
-        self.df.reset_index().to_feather(os.path.join(self.path, self.filename + '.ftr'), compression=compression)
+        self.df.reset_index().to_feather(self.filepath, compression=compression)
 
     def callback_candle(self, update):
         """Retrieve stream of candle stick type data.
