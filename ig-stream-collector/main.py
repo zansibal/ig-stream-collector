@@ -21,7 +21,7 @@ class CollectStream():
     """ Collect IG streaming data live. No preprocessing of data. The needs can change in
     the future, so we save the raw signal.
     """
-    DISCONNECT_TIMEOUT = 30
+    DISCONNECT_TIMEOUT = 60
     TIMEFRAMES_STREAMING = ['SECOND', '1MINUTE', '5MINUTE', 'HOUR']
     MAX_REINITS = 10
 
