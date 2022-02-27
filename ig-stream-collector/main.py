@@ -260,7 +260,6 @@ class DataSet():
             update (dict): Data from IG Streaming service.
         """
         global last_streaming_update
-        last_streaming_update = dt.datetime.now()
 
         if self._check_instrument(update):
             if self._consolidated(update):
@@ -272,6 +271,7 @@ class DataSet():
                 except TypeError as e:
                     logging.debug(f'{self.instrument} incorrect update from IG: {e}')
                 else:
+                    last_streaming_update = dt.datetime.now()
                     self.df = pd.concat([self.df, pd.DataFrame(update['values'], index=[timestamp])])
 
                 try:
@@ -289,7 +289,6 @@ class DataSet():
             update (dict): Data from IG Streaming service.
         """
         global last_streaming_update
-        last_streaming_update = dt.datetime.now()
 
         if self._check_instrument(update):
             logging.debug(f'{self.instrument} streaming tick update received')
@@ -300,6 +299,7 @@ class DataSet():
             except TypeError as e:
                 logging.debug(f'{self.instrument} incorrect update from IG: {e}')
             else:
+                last_streaming_update = dt.datetime.now()
                 self.df = pd.concat([self.df, pd.DataFrame(update['values'], index=[timestamp])])
 
             try:
