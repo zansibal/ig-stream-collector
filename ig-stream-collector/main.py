@@ -3,6 +3,7 @@ import datetime as dt
 import logging
 import os
 import pandas as pd
+import pytz
 import time
 import threading
 import watchtower
@@ -361,6 +362,17 @@ def send_notification(subject, message):
     if response['ResponseMetadata']['HTTPStatusCode'] == 200:
         logging.info('Notification sent via Amazon SNS')
 
+def test_localtime_is_correct_timezone(self, local_tz):
+    """Assert that the system's local timezone is correct.
+
+    Args:
+        local_tv (str): Timezone in pytz/linux timezone format, eg. 'Europe/Stockholm'.
+    """
+    # Replace seconds and microseconds so we don't get values that differ
+    now_utc = dt.datetime.utcnow().replace(second=0, microsecond=0)
+    now_local = dt.datetime.now().replace(second=0, microsecond=0)
+    assert now_local == now_utc.astimezone(pytz.timezone(local_tz)).replace(tzinfo=None)
+
 
 if __name__ == '__main__':
     logging.basicConfig(
@@ -373,6 +385,8 @@ if __name__ == '__main__':
             logging.StreamHandler(), # Prints to stdout
         ],
     )
+
+    test_localtime_is_correct_timezone('Europe/Stockholm')
 
     with open('instruments.yaml', 'r') as f:
         instruments = yaml.load(f, Loader=yaml.FullLoader)
