@@ -215,24 +215,26 @@ class DataSet():
             dft = pd.read_feather(path)
             self.df = dft.set_index(dft.columns[0])
 
-    def dump_to_disk(self, cur_ts, prev_ts):
+    def dump_to_disk(self):
         """Check if it is time to dump data from RAM to disk.
         If so, also save and empty dataframe.
-        
-        Args:
-            cur_ts (datetime64): Most recent timestamp.
-            prev_ts (datetime64): Previous timestamp.
         """
-        if not cur_ts.hour == prev_ts.hour:
-            logging.debug(f'Dumping {self.instrument} to disk')
+        try:
+            last_index = self.df.index[-1]
+            second_last_index = self.df.index[-2]
+        except IndexError:
+            logging.debug('Not big enough index during first callback')
+        else:
+            if not last_index.hour == second_last_index.hour:
+                logging.debug(f'Dumping {self.instrument} to disk')
 
-            # Extract data to dump and clean DataFrame in RAM. We do this before to_feather()
-            # because otherwise we will miss many tick updates while writing to disk
-            dump = self.df.iloc[:-1].copy()
-            self.df = self.df.iloc[[-1]] # Double brackets return DataFrame instead of Series
+                # Extract data to dump and clean DataFrame in RAM. We do this before to_feather()
+                # because otherwise we will miss many tick updates while writing to disk
+                dump = self.df.iloc[:-1].copy()
+                self.df = self.df.iloc[[-1]] # Double brackets return DataFrame instead of Series
 
-            # We save data every hour to save RAM (necessary for tick data, but do the same for candles)
-            self.to_feather(dump, prev_ts)
+                # We save data every hour to save RAM (necessary for tick data, but do the same for candles)
+                self.to_feather(dump, second_last_index)
 
     def to_feather(self, df=None, timestamp=None):
         """Write DataFrame to disk in feather format.
@@ -277,15 +279,8 @@ class DataSet():
                 else:
                     last_streaming_update = dt.datetime.now()
                     self.df = pd.concat([self.df, pd.DataFrame(update['values'], index=[timestamp])])
-
-                try:
-                    last_index = self.df.index[-1]
-                    second_last_index = self.df.index[-2]
-                except IndexError:
-                    logging.debug('Not big enough index during first callback')
-                else:
-                    self.dump_to_disk(last_index, second_last_index)
-
+                    self.dump_to_disk()
+                    
     def callback_tick(self, update):
         """Retrieve stream of candle stick type data.
 
@@ -299,19 +294,12 @@ class DataSet():
 
         if self._check_instrument(update):
             logging.debug(f'{self.instrument} streaming tick update received')
-
             update = self._process_tick(update)
+
             if update is not None:
                 last_streaming_update = dt.datetime.now()
                 self.df = pd.concat([self.df, update])
-
-                try:
-                    last_index = self.df.index[-1]
-                    second_last_index = self.df.index[-2]
-                except IndexError:
-                    logging.debug('Not big enough index during first callback')
-                else:
-                    self.dump_to_disk(last_index, second_last_index)
+                self.dump_to_disk()
 
     def _check_instrument(self, update):
         """Check that update's instrument is correct.
@@ -359,7 +347,7 @@ class DataSet():
             DataFrame: Processed update. None if process failed.
         """
         try:
-            timestamp = dt.datetime.fromtimestamp(float(update['values']['UTM'])/1000) # local time of bar start time
+            timestamp = dt.datetime.fromtimestamp(float(update['values']['UTM'])/1000) # localtime
         except TypeError as e:
             logging.debug(f'{self.instrument} timestamp is None: {e}')
         else:
