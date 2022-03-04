@@ -387,8 +387,9 @@ def test_localtime_is_correct_timezone(local_tz):
         local_tv (str): Timezone in pytz/linux timezone format, eg. 'Europe/Stockholm'.
     """
     # Replace seconds and microseconds so we don't get values that differ
-    now_utc = dt.datetime.utcnow().replace(second=0, microsecond=0)
+    # (can still happen at minute/hour/day transitions)
     now_local = dt.datetime.now().replace(second=0, microsecond=0)
+    now_utc = dt.datetime.now(pytz.utc).replace(second=0, microsecond=0)
     assert now_local == now_utc.astimezone(pytz.timezone(local_tz)).replace(tzinfo=None)
 
 
