@@ -280,7 +280,7 @@ class DataSet():
                     last_streaming_update = dt.datetime.now()
                     self.df = pd.concat([self.df, pd.DataFrame(update['values'], index=[timestamp])])
                     self.dump_to_disk()
-                    
+
     def callback_tick(self, update):
         """Retrieve stream of candle stick type data.
 
@@ -380,7 +380,7 @@ def send_notification(subject, message):
     if response['ResponseMetadata']['HTTPStatusCode'] == 200:
         logging.info('Notification sent via Amazon SNS')
 
-def test_localtime_is_correct_timezone(self, local_tz):
+def test_localtime_is_correct_timezone(local_tz):
     """Assert that the system's local timezone is correct.
 
     Args:
