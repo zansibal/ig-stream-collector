@@ -225,11 +225,15 @@ class DataSet():
             prev_ts (datetime64): Previous timestamp.
         """
         if not cur_ts.hour == prev_ts.hour:
-            # We save data every hour to save RAM (necessary for tick data, but do the same for candles)
-            self.to_feather(self.df.iloc[:-1], prev_ts)
+            logging.debug(f'Dumping {self.instrument} to disk')
 
-            # Clean DataFrame in RAM
+            # Extract data to dump and clean DataFrame in RAM. We do this before to_feather()
+            # because otherwise we will miss many tick updates while writing to disk
+            dump = self.df.iloc[:-1].copy()
             self.df = self.df.iloc[[-1]] # Double brackets return DataFrame instead of Series
+
+            # We save data every hour to save RAM (necessary for tick data, but do the same for candles)
+            self.to_feather(dump, prev_ts)
 
     def to_feather(self, df=None, timestamp=None):
         """Write DataFrame to disk in feather format.
@@ -276,9 +280,12 @@ class DataSet():
                     self.df = pd.concat([self.df, pd.DataFrame(update['values'], index=[timestamp])])
 
                 try:
-                    self.dump_to_disk(self.df.index[-1], self.df.index[-2])
+                    last_index = self.df.index[-1]
+                    second_last_index = self.df.index[-2]
                 except IndexError:
                     logging.debug('Not big enough index during first callback')
+                else:
+                    self.dump_to_disk(last_index, second_last_index)
 
     def callback_tick(self, update):
         """Retrieve stream of candle stick type data.
