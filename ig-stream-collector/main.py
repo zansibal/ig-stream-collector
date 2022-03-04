@@ -19,8 +19,7 @@ last_streaming_update = None
 
 
 class CollectStream():
-    """ Collect IG streaming data live. No preprocessing of data. The needs can change in
-    the future, so we save the raw signal.
+    """ Collect IG streaming data live.
     """
     DISCONNECT_TIMEOUT = 60
     TIMEFRAMES_STREAMING = ['SECOND', '1MINUTE', '5MINUTE', 'HOUR']
@@ -301,19 +300,18 @@ class DataSet():
         if self._check_instrument(update):
             logging.debug(f'{self.instrument} streaming tick update received')
 
-            # Ok, so we preprocess the timestamp, but that's all
-            try:
-                timestamp = dt.datetime.fromtimestamp(float(update['values']['UTM'])/1000) # local time of bar start time
-            except TypeError as e:
-                logging.debug(f'{self.instrument} incorrect update from IG: {e}')
-            else:
+            update = self._process_tick(update)
+            if update is not None:
                 last_streaming_update = dt.datetime.now()
-                self.df = pd.concat([self.df, pd.DataFrame(update['values'], index=[timestamp])])
+                self.df = pd.concat([self.df, update])
 
-            try:
-                self.dump_to_disk(self.df.index[-1], self.df.index[-2])
-            except IndexError:
-                logging.debug('Not big enough index during first callback')
+                try:
+                    last_index = self.df.index[-1]
+                    second_last_index = self.df.index[-2]
+                except IndexError:
+                    logging.debug('Not big enough index during first callback')
+                else:
+                    self.dump_to_disk(last_index, second_last_index)
 
     def _check_instrument(self, update):
         """Check that update's instrument is correct.
@@ -351,6 +349,31 @@ class DataSet():
             else:
                 return False
 
+    def _process_tick(self, update):
+        """Process tick update.
+        
+        Args:
+            update (dict): Data from IG Streaming service.
+            
+        returns
+            DataFrame: Processed update. None if process failed.
+        """
+        try:
+            timestamp = dt.datetime.fromtimestamp(float(update['values']['UTM'])/1000) # local time of bar start time
+        except TypeError as e:
+            logging.debug(f'{self.instrument} timestamp is None: {e}')
+        else:
+            try:
+                bid = float(update['values']['BID'])
+                ask = float(update['values']['OFR'])
+            except ValueError as e:
+                logging.debug(f'{self.instrument} bid or ask is empty string: {e}')
+            except TypeError as e:
+                logging.debug(f'{self.instrument} bid or ask is None: {e}')
+            else:
+                return pd.DataFrame({'bid': bid, 'ask': ask}, index=[timestamp])
+
+        return None
 
 def send_notification(subject, message):
     """Send Boto3 notification.
