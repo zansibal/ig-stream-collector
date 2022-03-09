@@ -170,7 +170,7 @@ class DataSet():
             compression (str): Compression standard to use. One of {“zstd”, “lz4”, “uncompressed”}.
                 The default of None uses LZ4 for V2 files if it is available, otherwise uncompressed.
         """
-        self.df = pd.DataFrame()
+        self.dataset = []
         self.instrument = instrument
         self.path = os.path.join(path, instrument)
         self.compression = compression
@@ -213,48 +213,48 @@ class DataSet():
         if os.path.exists(path):
             logging.info(f'Resuming collection on {path}')
             dft = pd.read_feather(path)
-            self.df = dft.set_index(dft.columns[0])
+            self.dataset = list(dft.to_records(index=False))
 
-    def dump_to_disk(self):
+    def dump_to_disk(self, timestamp):
         """Check if it is time to dump data from RAM to disk.
         If so, also save and empty dataframe.
+
+        Args:
+            timestamp (datetime64): Latest timestamp
         """
         try:
-            last_index = self.df.index[-1]
-            second_last_index = self.df.index[-2]
+            prev_hour = self.dataset[-1][0].hour
         except IndexError:
-            logging.debug('Not big enough index during first callback')
+            logging.debug(f'{self.instrument} has no dataset to dump')
         else:
-            if not last_index.hour == second_last_index.hour:
+            if not timestamp.hour == prev_hour:
                 logging.debug(f'Dumping {self.instrument} to disk')
 
-                # Extract data to dump and clean DataFrame in RAM. We do this before to_feather()
-                # because otherwise we will miss many tick updates while writing to disk
-                dump = self.df.iloc[:-1].copy()
-                self.df = self.df.iloc[[-1]] # Double brackets return DataFrame instead of Series
+                # Extract data to dump and clean list in RAM. We do this before to_feather()
+                # because otherwise we will miss many ticks updates while writing to disk 
+                # (if instance is overloaded we may miss ticks anyway)
+                dump = pd.DataFrame(self.dataset, columns=['index','bid','ask'])
+                self.dataset = []
 
                 # We save data every hour to save RAM (necessary for tick data, but do the same for candles)
-                self.to_feather(dump, second_last_index)
+                self.to_feather(dump)
 
-    def to_feather(self, df=None, timestamp=None):
+    def to_feather(self, df=None):
         """Write DataFrame to disk in feather format.
         
         Args:
             df (DataFrame): DataFrame to save. Default None saves self.df.
-            timestamp (datetime64): Timestamp to create filename from. Default None uses
-                last index in df.
         """
         if df is None:
-            df = self.df
+            df = pd.DataFrame(self.dataset, columns=['index','bid','ask'])
 
-        if timestamp is None:
-            try:
-                timestamp = df.index[-1]
-            except IndexError:
-                # Nothing to save
-                return
+        try:
+            timestamp = df.iat[-1,0] # Last index
+        except IndexError:
+            # Nothing to save
+            return
 
-        df.reset_index().to_feather(self.get_filepath(timestamp), compression=self.compression)
+        df.to_feather(self.get_filepath(timestamp), compression=self.compression)
 
     def callback_candle(self, update):
         """Retrieve stream of candle stick type data.
@@ -294,12 +294,12 @@ class DataSet():
 
         if self._check_instrument(update):
             logging.debug(f'{self.instrument} streaming tick update received')
-            update = self._process_tick(update)
+            timestamp, bid, ask = self._process_tick(update)
 
-            if update is not None:
+            if timestamp is not None:
                 last_streaming_update = dt.datetime.now()
-                self.df = pd.concat([self.df, update])
-                self.dump_to_disk()
+                self.dump_to_disk(timestamp)
+                self.dataset.append((timestamp, bid, ask))
 
     def _check_instrument(self, update):
         """Check that update's instrument is correct.
@@ -344,7 +344,7 @@ class DataSet():
             update (dict): Data from IG Streaming service.
             
         returns
-            DataFrame: Processed update. None if process failed.
+            datetime64, float, float: Timestamp, bid, ask. None, None, None if process failed.
         """
         try:
             timestamp = dt.datetime.fromtimestamp(float(update['values']['UTM'])/1000) # localtime
@@ -359,9 +359,9 @@ class DataSet():
             except TypeError as e:
                 logging.debug(f'{self.instrument} bid or ask is None: {e}')
             else:
-                return pd.DataFrame({'bid': bid, 'ask': ask}, index=[timestamp])
+                return timestamp, bid, ask
 
-        return None
+        return None, None, None
 
 def send_notification(subject, message):
     """Send Boto3 notification.
