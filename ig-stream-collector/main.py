@@ -178,6 +178,21 @@ class DataSet():
         self.check_path(self.path)
         self.resume_file(self.get_filepath(dt.datetime.now()))
 
+        self.lock = threading.Lock()
+
+    def acquire_lock(func):
+        """Decorator that acquires and releases the object threading
+        lock when function is called. The main reason is that
+        we can get tick updates while saving to disk.
+        """
+        def inner(self, *args, **kwargs):
+            if kwargs.pop('internal', None): # Bypasses lock acquisition
+                return func(self, *args, **kwargs)
+            else:
+                with self.lock:
+                    return func(self, *args, **kwargs)
+        return inner
+
     def get_filename(self, timestamp):
         """Get filename based on timestamp. Format: instrument_year-month-day-hour.ftr
         
@@ -281,6 +296,7 @@ class DataSet():
                     self.df = pd.concat([self.df, pd.DataFrame(update['values'], index=[timestamp])])
                     self.dump_to_disk()
 
+    @acquire_lock
     def callback_tick(self, update):
         """Retrieve stream of candle stick type data.
 
