@@ -120,6 +120,7 @@ class CollectStream():
         if timeframe not in self.TIMEFRAMES_STREAMING: raise ValueError('Not a valid timeframe for Streaming API')
 
         logging.info(f'Subscribing to {instrument} for candle data with {timeframe=}')
+        logging.warning('Only tick data stream is currently supported')
 
         subscription = Subscription(
             mode = 'MERGE',
@@ -271,30 +272,30 @@ class DataSet():
 
         df.to_feather(self.get_filepath(timestamp), compression=self.compression)
 
-    def callback_candle(self, update):
-        """Retrieve stream of candle stick type data.
+    # def callback_candle(self, update):
+    #     """Retrieve stream of candle stick type data. Broken.
 
-        Data is retrieved continuously (streaming), about every 1 seconds. If the candle
-        has finished (consolidated), the candle is saved.
+    #     Data is retrieved continuously (streaming), about every 1 seconds. If the candle
+    #     has finished (consolidated), the candle is saved.
 
-        Args:
-            update (dict): Data from IG Streaming service.
-        """
-        global last_streaming_update
+    #     Args:
+    #         update (dict): Data from IG Streaming service.
+    #     """
+    #     global last_streaming_update
 
-        if self._check_instrument(update):
-            if self._consolidated(update):
-                logging.debug(f'{self.instrument} consolidated streaming update received')
+    #     if self._check_instrument(update):
+    #         if self._consolidated(update):
+    #             logging.debug(f'{self.instrument} consolidated streaming update received')
 
-                # Ok, so we preprocess the timestamp, but that's all
-                try:
-                    timestamp = dt.datetime.fromtimestamp(float(update['values']['UTM'])/1000) # local time of bar start time
-                except TypeError as e:
-                    logging.debug(f'{self.instrument} incorrect update from IG: {e}')
-                else:
-                    last_streaming_update = dt.datetime.now()
-                    self.df = pd.concat([self.df, pd.DataFrame(update['values'], index=[timestamp])])
-                    self.dump_to_disk()
+    #             # Ok, so we preprocess the timestamp, but that's all
+    #             try:
+    #                 timestamp = dt.datetime.fromtimestamp(float(update['values']['UTM'])/1000) # local time of bar start time
+    #             except TypeError as e:
+    #                 logging.debug(f'{self.instrument} incorrect update from IG: {e}')
+    #             else:
+    #                 last_streaming_update = dt.datetime.now()
+    #                 self.df = pd.concat([self.df, pd.DataFrame(update['values'], index=[timestamp])])
+    #                 self.dump_to_disk()
 
     @acquire_lock
     def callback_tick(self, update):
