@@ -53,7 +53,7 @@ class CollectStream():
         self.ig_service = IGService(username, password, api_key, acc_type, acc_number=acc_number)
         self.ig_session = self.ig_service.create_session() 
 
-        logging.info('Connecting to IG Streaming API and creating session')
+        logging.info(f'Connecting to IG Streaming API and creating session ({acc_type.upper()})')
         self.cur_init += 1
 
         self.stream_service = IGStreamService(self.ig_service)
