@@ -213,7 +213,7 @@ class DataSet():
         if os.path.exists(path):
             logging.info(f'Resuming collection on {path}')
             dft = pd.read_feather(path)
-            self.dataset = list(dft.to_records(index=False))
+            self.dataset = list(dft.itertuples(index=False, name=None))
 
     def dump_to_disk(self, timestamp):
         """Check if it is time to dump data from RAM to disk.
@@ -223,11 +223,11 @@ class DataSet():
             timestamp (datetime64): Latest timestamp
         """
         try:
-            prev_hour = self.dataset[-1][0].hour
+            prev_timestamp = self.dataset[-1][0]
         except IndexError:
             logging.debug(f'{self.instrument} has no dataset to dump')
         else:
-            if not timestamp.hour == prev_hour:
+            if not timestamp.hour == prev_timestamp.hour:
                 logging.debug(f'Dumping {self.instrument} to disk')
 
                 # Extract data to dump and clean list in RAM. We do this before to_feather()
