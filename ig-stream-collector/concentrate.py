@@ -26,7 +26,7 @@ if __name__ == '__main__':
                     '(weekend), so that full weeks can be concentrated')
 
     path_source = os.path.join(os.path.expanduser('~'), 'data', 'tick', '*')
-    path_weeks = os.path.join(os.path.expanduser('~'), 'data', 'tick_weekly')
+    path_weekly = os.path.join(os.path.expanduser('~'), 'data', 'tick_weekly')
     dirs = glob.glob(path_source)
 
     for directory in dirs:
@@ -40,7 +40,7 @@ if __name__ == '__main__':
         df = pd.concat(dfs)
         df = df.sort_values(by='index')
 
-        path_dest = os.path.join(path_weeks, os.path.basename(directory))
+        path_dest = os.path.join(path_weekly, os.path.basename(directory))
         if not os.path.exists(path_dest):
             os.makedirs(path_dest)
         
