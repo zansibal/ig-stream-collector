@@ -15,7 +15,7 @@ if __name__ == '__main__':
                     '(weekend), so that full weeks can be concentrated')
 
     path_source = os.path.join(os.path.expanduser('~'), 'data', 'tick')
-    path_dest = os.path.join(os.path.expanduser('~'), 'data', 'tick_concentrated')
+    path_dest = os.path.join(os.path.expanduser('~'), 'data', 'tick_weekly')
     dirs = glob.glob(path_source)
 
     for directory in dirs:
