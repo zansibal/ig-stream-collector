@@ -253,11 +253,14 @@ class DataSet():
                 self.dataset = []
 
                 # We save data every hour to save RAM (necessary for tick data, but do the same for candles)
-                self.to_feather(dump, internal=True) # Bypasses lock acquisition
+                # internal=True bypasses lock acquisiton, because this function is called via
+                # the callback, that has already locked the object.
+                self.to_feather(dump, internal=True)
 
     @acquire_lock
     def to_feather(self, df=None):
-        """Write DataFrame to disk in feather format.
+        """Write DataFrame to disk in feather format. Lock here to not alter the
+        data while saving after a keyboard interrupt.
         
         Args:
             df (DataFrame): DataFrame to save. Default None saves self.df.
