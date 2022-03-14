@@ -253,8 +253,9 @@ class DataSet():
                 self.dataset = []
 
                 # We save data every hour to save RAM (necessary for tick data, but do the same for candles)
-                self.to_feather(dump)
+                self.to_feather(dump, internal=True) # Bypasses lock acquisition
 
+    @acquire_lock
     def to_feather(self, df=None):
         """Write DataFrame to disk in feather format.
         
