@@ -486,6 +486,9 @@ if __name__ == '__main__':
     #     dataset.to_feather()
 
     for dataset in datasets_tick.values():
-        dataset.to_feather()
+        try:
+            dataset.to_feather()
+        except Exception as e:
+            logging.exception(f'Saving dataset for instrument {dataset.instrument} caused exception: {e}')
 
     collector.disconnect()
