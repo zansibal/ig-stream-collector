@@ -47,7 +47,7 @@ class CollectStream():
             username (str): Username.
             password (str): Password.
             api_key (str): API key.
-            acc_type (str): 'DEMO' och 'LIVE'. No reason to use a live account here.
+            acc_type (str): 'DEMO' och 'LIVE'.
             acc_number (str): IG account name.
         """
         self.ig_service = IGService(username, password, api_key, acc_type, acc_number=acc_number)
