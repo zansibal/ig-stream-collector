@@ -14,7 +14,7 @@ from trading_ig.config import config
 from trading_ig.lightstreamer import Subscription
 
 from aws_config import TOPIC_ARN
-MAX_PAUSE_STREAMING = 30
+MAX_PAUSE_STREAMING = 60
 last_streaming_update = None
 
 
@@ -461,10 +461,9 @@ if __name__ == '__main__':
                         f'Streaming ceased. Initializing connection ({collector.cur_init+1} times).'
                     )
 
-                    last_streaming_update = None
-
                     if collector.cur_init < collector.MAX_REINITS:
                         collector.reinit() # Verified manually that it works
+                        last_streaming_update = None # Set to None after reinit
                     else:
                         logging.warning(f'Max number of reinits reached for this week - exiting')
                         send_notification(
