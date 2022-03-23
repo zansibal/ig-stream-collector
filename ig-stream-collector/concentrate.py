@@ -25,8 +25,10 @@ if __name__ == '__main__':
     logging.warning('This script should only be run during non-trading hours '
                     '(weekend), so that full weeks can be concentrated')
 
-    path_source = os.path.join(os.path.expanduser('~'), 'data', 'tick', '*')
-    path_weekly = os.path.join(os.path.expanduser('~'), 'data', 'tick_weekly')
+    # path_source = os.path.join(os.path.expanduser('~'), 'data', 'tick', '*')
+    # path_weekly = os.path.join(os.path.expanduser('~'), 'data', 'tick_weekly')
+    path_source = os.path.join(os.path.expanduser('~'), 'data', 'indy', 'prices', 'ig_streaming', 'tick_h', '*')
+    path_weekly = os.path.join(os.path.expanduser('~'), 'data', 'indy', 'prices', 'ig_streaming', 'tick')
     dirs = glob.glob(path_source)
 
     for directory in dirs:
@@ -44,7 +46,9 @@ if __name__ == '__main__':
         if not os.path.exists(path_dest):
             os.makedirs(path_dest)
         
-        for _, week in df.groupby(pd.Grouper(key='index',freq='W-SUN')):
+        # W-SAT (weekly anchored on Saturday) means last day of week is Saturday
+        # We take the week number from the last sample (Friday evening)
+        for a, week in df.groupby(pd.Grouper(key='index',freq='W-SAT')):
             week.reset_index(drop=True).to_feather(
                 os.path.join(path_dest, get_filename(directory, week.iloc[-1,0]))
             )
