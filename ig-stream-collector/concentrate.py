@@ -37,21 +37,19 @@ if __name__ == '__main__':
         dfs = []
         for file_ in sorted(files):
             dfs.append(read_file(file_))
-            
-        df = pd.concat(dfs)
-        dfs.clear() # Free some RAM for operations below
-        gc.collect()
 
+        print('Concat')    
+        df = pd.concat(dfs)
+        print('Sorting')
         df = df.sort_values(by='index')
 
         path_dest = os.path.join(path_weekly, os.path.basename(directory))
         if not os.path.exists(path_dest):
             os.makedirs(path_dest)
         
+        print('Groupby')
         weeks = [g for n, g in df.groupby(pd.Grouper(key='index',freq='W-SUN'))]
         for week in weeks:
             week.reset_index(drop=True).to_feather(
                 os.path.join(path_dest, get_filename(directory, week.iloc[-1,0]))
             )
-        weeks.clear() # Free some RAM for next directory
-        gc.collect()
