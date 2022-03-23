@@ -38,6 +38,8 @@ if __name__ == '__main__':
             dfs.append(read_file(file_))
             
         df = pd.concat(dfs)
+        dfs.clear() # Free some RAM for operations below
+
         df = df.sort_values(by='index')
 
         path_dest = os.path.join(path_weekly, os.path.basename(directory))
@@ -49,3 +51,4 @@ if __name__ == '__main__':
             week.reset_index(drop=True).to_feather(
                 os.path.join(path_dest, get_filename(directory, week.iloc[-1,0]))
             )
+        weeks.clear() # Free some RAM for next directory
