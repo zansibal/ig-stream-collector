@@ -1,4 +1,3 @@
-import gc
 import glob
 import logging
 import os
@@ -38,18 +37,14 @@ if __name__ == '__main__':
         for file_ in sorted(files):
             dfs.append(read_file(file_))
 
-        print('Concat')    
         df = pd.concat(dfs)
-        print('Sorting')
         df = df.sort_values(by='index')
 
         path_dest = os.path.join(path_weekly, os.path.basename(directory))
         if not os.path.exists(path_dest):
             os.makedirs(path_dest)
         
-        print('Groupby')
-        weeks = [g for n, g in df.groupby(pd.Grouper(key='index',freq='W-SUN'))]
-        for week in weeks:
+        for _, week in df.groupby(pd.Grouper(key='index',freq='W-SUN')):
             week.reset_index(drop=True).to_feather(
                 os.path.join(path_dest, get_filename(directory, week.iloc[-1,0]))
             )
