@@ -26,10 +26,10 @@ if __name__ == '__main__':
     logging.warning('This script should only be run during non-trading hours '
                     '(weekend), so that full weeks can be concentrated')
 
-    path_source = os.path.join(os.path.expanduser('~'), 'data', f'tick_{dt.datetime.now().strftime("%Y-%U")}', '*')
-    path_weekly = os.path.join(os.path.expanduser('~'), 'data', 'tick_weekly')
-    # path_source = os.path.join(os.path.expanduser('~'), 'data', 'indy', 'prices', 'ig_streaming', 'tick_h', '*')
-    # path_weekly = os.path.join(os.path.expanduser('~'), 'data', 'indy', 'prices', 'ig_streaming', 'tick')
+    # path_source = os.path.join(os.path.expanduser('~'), 'data', f'tick_{dt.datetime.now().strftime("%Y-%U")}', '*')
+    # path_weekly = os.path.join(os.path.expanduser('~'), 'data', 'tick_weekly')
+    path_source = os.path.join(os.path.expanduser('~'), 'data', 'indy', 'prices', 'ig_streaming', 'tick_h', '*')
+    path_weekly = os.path.join(os.path.expanduser('~'), 'data', 'indy', 'prices', 'ig_streaming', 'tick')
     dirs = glob.glob(path_source)
 
     for directory in dirs:
