@@ -1,4 +1,4 @@
-dir=$(cd -P -- "$(dirname -- "$0")" && pwd -P)
+cd "${0%/*}"
 KEY="aws/LightsailDefaultKey-eu-west-1.pem"
 IP=`cat aws/ip`
 YEAR=$(date +%Y)
