@@ -15,6 +15,7 @@ watchtower = "*"
 pyarrow = "*"
 pycryptodome = "*"
 requests = "*"
+awscli = "*"
 
 [dev-packages]
 
