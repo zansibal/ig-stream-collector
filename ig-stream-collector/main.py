@@ -14,16 +14,16 @@ from trading_ig.config import config
 from trading_ig.lightstreamer import Subscription
 
 from aws_config import TOPIC_ARN
-MAX_PAUSE_STREAMING = 60
+MAX_PAUSE_STREAMING = 30
 last_streaming_update = None
 
 
 class CollectStream():
     """ Collect IG streaming data live.
     """
-    DISCONNECT_TIMEOUT = 60
+    DISCONNECT_TIMEOUT = 10
     TIMEFRAMES_STREAMING = ['SECOND', '1MINUTE', '5MINUTE', 'HOUR']
-    MAX_REINITS = 10
+    MAX_REINITS = 60
 
     subscriptions = []
     cur_init = 0
@@ -455,7 +455,7 @@ if __name__ == '__main__':
     # Loop until market closes on Friday 23:00 local time
     try:
         now = dt.datetime.now()
-        while not (now.weekday() == 4 and now.hour == 23 and now.minute >= 1):
+        while not (now.weekday() == 4 and now.hour == 23):
             # Check streaming status
             if last_streaming_update is not None:
                 if (now-last_streaming_update).total_seconds() > MAX_PAUSE_STREAMING:
@@ -467,7 +467,6 @@ if __name__ == '__main__':
 
                     if collector.cur_init < collector.MAX_REINITS:
                         collector.reinit() # Verified manually that it works
-                        last_streaming_update = None # Set to None after reinit
                     else:
                         logging.warning(f'Max number of reinits reached for this week - exiting')
                         send_notification(
