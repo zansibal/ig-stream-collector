@@ -457,25 +457,33 @@ if __name__ == '__main__':
         now = dt.datetime.now()
         while not (now.weekday() == 4 and now.hour == 23):
             # Check streaming status
-            if last_streaming_update is not None:
-                if (now-last_streaming_update).total_seconds() > MAX_PAUSE_STREAMING:
-                    logging.warning(f'Streaming of data ceased.')
-                    send_notification(
-                        'Streaming ceased', 
-                        f'Streaming ceased. Initializing connection ({collector.cur_init+1} times).'
-                    )
-
-                    if collector.cur_init < collector.MAX_REINITS:
-                        collector.reinit() # Verified manually that it works
-                    else:
-                        logging.warning(f'Max number of reinits reached for this week - exiting')
+            try:
+                if last_streaming_update is not None:
+                    if (now-last_streaming_update).total_seconds() > MAX_PAUSE_STREAMING:
+                        logging.warning(f'Streaming of data ceased.')
                         send_notification(
-                            'Max reinits reached', 
-                            f'Max reinits reached {collector.MAX_REINITS}. Exiting.'
+                            'Streaming ceased', 
+                            f'Streaming ceased. Initializing connection ({collector.cur_init+1} times).'
                         )
-                        break
-            else:
-                logging.warning('last_streaming_update is None')
+
+                        if collector.cur_init < collector.MAX_REINITS:
+                            collector.reinit() # Verified manually that it works
+                        else:
+                            logging.warning(f'Max number of reinits reached for this week - exiting')
+                            send_notification(
+                                'Max reinits reached', 
+                                f'Max reinits reached {collector.MAX_REINITS}. Exiting.'
+                            )
+                            break
+                else:
+                    logging.warning('last_streaming_update is None')
+
+            except Exception as e:
+                logging.exception(f'Unknown exception: {e}')
+                try:
+                    send_notification('Unknown exception', f'{e}')
+                except Exception as e:
+                    logging.exception(f'Unknown exception sending notification: {e}')
 
             time.sleep(30)
             now = dt.datetime.now()
