@@ -28,7 +28,7 @@ if __name__ == '__main__':
 
     path_source = os.path.join(os.path.expanduser('~'), 'data', f'tick_{dt.datetime.now().strftime("%Y-%U")}', '*')
     path_weekly = os.path.join(os.path.expanduser('~'), 'data', 'tick_weekly')
-    # path_source = os.path.join(os.path.expanduser('~'), 'data', 'indy', 'prices', 'ig_streaming', 'tick_h', '*')
+    # path_source = os.path.join(os.path.expanduser('~'), 'data', 'indy', 'prices', 'ig_streaming', 'tick_2022-24', '*')
     # path_weekly = os.path.join(os.path.expanduser('~'), 'data', 'indy', 'prices', 'ig_streaming', 'tick')
     dirs = glob.glob(path_source)
 
