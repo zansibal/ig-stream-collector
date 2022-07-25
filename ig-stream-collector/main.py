@@ -460,21 +460,24 @@ if __name__ == '__main__':
             try:
                 if last_streaming_update is not None:
                     if (now-last_streaming_update).total_seconds() > MAX_PAUSE_STREAMING:
-                        logging.warning(f'Streaming of data ceased.')
-                        send_notification(
-                            'Streaming ceased', 
-                            f'Streaming ceased. Initializing connection ({collector.cur_init+1} times).'
-                        )
-
-                        if collector.cur_init < collector.MAX_REINITS:
-                            collector.reinit() # Verified manually that it works
-                        else:
-                            logging.warning(f'Max number of reinits reached for this week - exiting')
+                        if not (now.weekday() == 4 and now.hour == 22 and now.minute > 50):
+                            logging.warning(f'Streaming of data ceased.')
                             send_notification(
-                                'Max reinits reached', 
-                                f'Max reinits reached {collector.MAX_REINITS}. Exiting.'
+                                'Streaming ceased', 
+                                f'Streaming ceased. Initializing connection ({collector.cur_init+1} times).'
                             )
-                            break
+
+                            if collector.cur_init < collector.MAX_REINITS:
+                                collector.reinit() # Verified manually that it works
+                            else:
+                                logging.warning(f'Max number of reinits reached for this week - exiting')
+                                send_notification(
+                                    'Max reinits reached', 
+                                    f'Max reinits reached {collector.MAX_REINITS}. Exiting.'
+                                )
+                                break
+                        else:
+                            logging.warning('Lost streaming connection, but do not do anything if we nearing market closing')
                 else:
                     logging.warning('last_streaming_update is None')
 
