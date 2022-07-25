@@ -23,15 +23,21 @@ if __name__ == '__main__':
     dirs = glob.glob(os.path.join(path_source, '*'))
     s3 = boto3.resource('s3')
 
+    # Get list of files already on S3
+    file_list = []
+    for obj in s3.Bucket(BUCKET).objects.all():
+        file_list.append(os.path.basename(obj.key))
+
     for directory in dirs:
         # if not 'AUDCAD' in directory: continue # DEBUG
         for filepath_source in glob.glob(os.path.join(directory, '*')):
             filename = os.path.basename(filepath_source)
-            filepath_dest = f'{os.path.basename(directory)}/{filename}' # Assume path exists
-            logging.info(f'Uploading {filename} to s3://{BUCKET}/{filepath_dest}')
-            if not os.path.exists(filepath_source):
-                logging.warning(f'File not found: {filepath_source}')
-                continue
-            
-            s3.Bucket(BUCKET).upload_file(filepath_source, filepath_dest)
-            # break # DEBUG
+            if not filename in file_list:
+                filepath_dest = f'{os.path.basename(directory)}/{filename}' # Assume path exists
+                logging.info(f'Uploading {filename} to s3://{BUCKET}/{filepath_dest}')
+                if not os.path.exists(filepath_source):
+                    logging.warning(f'File not found: {filepath_source}')
+                    continue
+                
+                s3.Bucket(BUCKET).upload_file(filepath_source, filepath_dest)
+                # break # DEBUG
