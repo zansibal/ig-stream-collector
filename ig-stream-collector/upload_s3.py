@@ -6,7 +6,8 @@ import logging
 import os
 
 def get_filename(directory, timestamp):
-    return f'{os.path.basename(directory)}_{timestamp.strftime("%Y-%W")}.ftr'
+    # ISO 8601 week, same as pandas uses
+    return f'{os.path.basename(directory)}_{timestamp.strftime("%Y-%V")}.ftr'
 
 if __name__ == '__main__':
     logging.basicConfig(
@@ -20,7 +21,7 @@ if __name__ == '__main__':
     path_source = os.path.join(os.path.expanduser('~'), 'data', 'tick_weekly') # AWS
     # path_source = os.path.join(os.path.expanduser('~'), 'data', 'indy', 'prices', 'ig_streaming', 'tick') # local
     BUCKET = 'indy-tick-data'
-    suffix_file = f'{dt.datetime.now().strftime("%Y-%W")}.ftr'
+    suffix_file = f'{dt.datetime.now().strftime("%Y-%V")}.ftr' # ISO 8601 week, same as pandas uses
     # suffix_file = '2022-29.ftr' # DEBUG
     dirs = glob.glob(os.path.join(path_source, '*'))
     s3 = boto3.resource('s3')

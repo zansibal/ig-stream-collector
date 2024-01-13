@@ -448,7 +448,12 @@ if __name__ == '__main__':
     for instrument in instruments:
         datasets_tick[instrument] = DataSet(
             instrument, 
-            os.path.join(os.path.expanduser('~'), 'data', f'tick_{dt.datetime.now().strftime("%Y-%W")}'),
+            # Add one day, so that we can start collecting on Sunday,
+            # and still get the correct week number
+            os.path.join(
+                os.path.expanduser('~'), 
+                'data', 
+                f'tick_{(dt.datetime.now()+dt.timedelta(days=1)).strftime("%Y-%V")}'),
             compression)
         collector.subscribe_tick_data_stream(datasets_tick[instrument].callback_tick, instrument)
 
