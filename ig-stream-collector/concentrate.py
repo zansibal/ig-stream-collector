@@ -12,7 +12,7 @@ def read_file(file_):
         return pd.DataFrame()
 
 def get_filename(directory, timestamp):
-    return f'{os.path.basename(directory)}_{timestamp.strftime("%Y-%U")}.ftr'
+    return f'{os.path.basename(directory)}_{timestamp.strftime("%Y-%W")}.ftr'
 
 if __name__ == '__main__':
     logging.basicConfig(
@@ -26,7 +26,7 @@ if __name__ == '__main__':
     logging.warning('This script should only be run during non-trading hours '
                     '(weekend), so that full weeks can be concentrated')
 
-    path_source = os.path.join(os.path.expanduser('~'), 'data', f'tick_{dt.datetime.now().strftime("%Y-%U")}', '*') # aws
+    path_source = os.path.join(os.path.expanduser('~'), 'data', f'tick_{dt.datetime.now().strftime("%Y-%W")}', '*') # aws
     path_weekly = os.path.join(os.path.expanduser('~'), 'data', 'tick_weekly') # aws
     # path_source = os.path.join(os.path.expanduser('~'), 'data', 'indy', 'prices', 'ig_streaming', 'tick_2022-28', '*') # local
     # path_weekly = os.path.join(os.path.expanduser('~'), 'data', 'indy', 'prices', 'ig_streaming', 'tick') # local
