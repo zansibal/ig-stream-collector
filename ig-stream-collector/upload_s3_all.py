@@ -6,7 +6,7 @@ import logging
 import os
 
 def get_filename(directory, timestamp):
-    return f'{os.path.basename(directory)}_{timestamp.strftime("%Y-%U")}.ftr'
+    return f'{os.path.basename(directory)}_{timestamp.strftime("%Y-%W")}.ftr'
 
 if __name__ == '__main__':
     logging.basicConfig(
