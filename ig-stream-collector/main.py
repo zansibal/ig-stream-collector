@@ -448,7 +448,7 @@ if __name__ == '__main__':
     for instrument in instruments:
         datasets_tick[instrument] = DataSet(
             instrument, 
-            os.path.join(os.path.expanduser('~'), 'data', f'tick_{dt.datetime.now().strftime("%Y-%U")}'),
+            os.path.join(os.path.expanduser('~'), 'data', f'tick_{dt.datetime.now().strftime("%Y-%W")}'),
             compression)
         collector.subscribe_tick_data_stream(datasets_tick[instrument].callback_tick, instrument)
 
