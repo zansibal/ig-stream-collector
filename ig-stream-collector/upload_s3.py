@@ -18,22 +18,29 @@ if __name__ == '__main__':
         ],
     )
 
-    path_source = os.path.join(os.path.expanduser('~'), 'data', 'tick_weekly') # AWS
-    # path_source = os.path.join(os.path.expanduser('~'), 'data', 'indy', 'prices', 'ig_streaming', 'tick') # local
-    BUCKET = 'indy-tick-data'
-    suffix_file = f'{dt.datetime.now().strftime("%Y-%V")}.ftr' # ISO 8601 week, same as pandas uses
-    # suffix_file = '2022-29.ftr' # DEBUG
-    dirs = glob.glob(os.path.join(path_source, '*'))
-    s3 = boto3.resource('s3')
+    buckets = {
+        'ig-book': 'book',
+        'ig-ohlcv-1m': 'ohlcv_1m',
+        'ig-tick': 'tick',
+    }
+    year_week = dt.datetime.now().strftime("%Y-%V") # ISO 8601 week, same as pandas uses
 
-    for directory in dirs:
-        # if not 'AUDCAD' in directory: continue # DEBUG
-        filename = f'{os.path.basename(directory)}_{suffix_file}'
-        filepath_source = os.path.join(path_source, os.path.basename(directory), filename)
-        filepath_dest = f'{os.path.basename(directory)}/{filename}' # Assume path exists
-        logging.info(f'Uploading {filename} to s3://{BUCKET}/{filepath_dest}')
-        if not os.path.exists(filepath_source):
-            logging.warning(f'File not found: {filepath_source}')
-            continue
-        
-        s3.Bucket(BUCKET).upload_file(filepath_source, filepath_dest)
+    for bucket, path_prefix in buckets.items():
+        path_source = os.path.join(os.path.expanduser('~'), 'data', f'tick_{year_week}')
+        suffix_file = f'{year_week}.ftr' 
+        # suffix_file = '2022-29.ftr' # DEBUG
+        dirs = glob.glob(os.path.join(path_source, '*'))
+        s3 = boto3.resource('s3')
+
+        for directory in dirs:
+            # if not 'AUDCAD' in directory: continue # DEBUG
+            epic = os.path.basename(directory)
+            filename = f'{epic}_{suffix_file}'
+            filepath_source = os.path.join(path_source, epic, filename)
+            filepath_dest = f'{epic}/{filename}' # Assume path exists
+            logging.info(f'Uploading {filename} to s3://{bucket}/{filepath_dest}')
+            if not os.path.exists(filepath_source):
+                logging.warning(f'File not found: {filepath_source}')
+                continue
+            
+            s3.Bucket(bucket).upload_file(filepath_source, filepath_dest)

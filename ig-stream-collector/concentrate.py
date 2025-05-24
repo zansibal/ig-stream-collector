@@ -27,31 +27,30 @@ if __name__ == '__main__':
     logging.warning('This script should only be run during non-trading hours '
                     '(weekend), so that full weeks can be concentrated')
 
-    # ISO 8601 week, same as pandas uses
-    path_source = os.path.join(os.path.expanduser('~'), 'data', f'tick_{dt.datetime.now().strftime("%Y-%V")}', '*') # aws
-    path_weekly = os.path.join(os.path.expanduser('~'), 'data', 'tick_weekly') # aws
-    # path_source = os.path.join(os.path.expanduser('~'), 'data', 'indy', 'prices', 'ig_streaming', 'tick_2022-28', '*') # local
-    # path_weekly = os.path.join(os.path.expanduser('~'), 'data', 'indy', 'prices', 'ig_streaming', 'tick') # local
-    dirs = glob.glob(path_source)
+    for dataset in ['book', 'ohlcv_1m', 'tick']:
+        # ISO 8601 week, same as pandas uses
+        path_source = os.path.join(os.path.expanduser('~'), 'data', f'{dataset}_{dt.datetime.now().strftime("%Y-%V")}')
+        path_weekly = path_source # Place weekly aggregated data in same place for simpler drive cleaning
+        dirs = glob.glob(os.path.join(path_source, '*'))
 
-    for directory in dirs:
-        logging.info(f'Concentrating {directory}')
-        files = glob.glob(os.path.join(directory, '*.ftr'))
+        for directory in dirs:
+            logging.info(f'Concentrating {directory}')
+            files = glob.glob(os.path.join(directory, '*.ftr'))
+            epic = os.path.basename(directory)
 
-        dfs = []
-        for file_ in sorted(files):
-            dfs.append(read_file(file_))
+            dfs = []
+            for file_ in sorted(files):
+                dfs.append(read_file(file_))
 
-        df = pd.concat(dfs)
-        df = df.sort_values(by='index')
+            df = pd.concat(dfs)
+            df = df.sort_values(by='index')
 
-        path_dest = os.path.join(path_weekly, os.path.basename(directory))
-        if not os.path.exists(path_dest):
-            os.makedirs(path_dest)
-        
-        # W-SAT (weekly anchored on Saturday) means last day of week is Saturday
-        # We take the week number from the last sample (Friday evening)
-        for a, week in df.groupby(pd.Grouper(key='index',freq='W-SAT')):
-            week.reset_index(drop=True).to_feather(
-                os.path.join(path_dest, get_filename(directory, week.iloc[-1,0]))
-            )
+            path_dest = os.path.join(path_weekly, epic)
+            os.makedirs(path_dest, exist_ok=True)
+            
+            # W-SAT (weekly anchored on Saturday) means last day of week is Saturday
+            # We take the week number from the last sample (Friday evening)
+            for a, week in df.groupby(pd.Grouper(key='index',freq='W-SAT')):
+                week.reset_index(drop=True).to_feather(
+                    os.path.join(path_dest, get_filename(directory, week.iloc[-1,0]))
+                )
