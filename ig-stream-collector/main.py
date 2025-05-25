@@ -139,7 +139,7 @@ class DataSet():
         If so, also save and empty dataframe.
 
         Args:
-            timestamp (datetime64): Latest timestamp
+            timestamp (datetime64): Latest timestamp.
         """
         try:
             prev_timestamp = self.dataset[-1][0]
