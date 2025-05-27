@@ -8,7 +8,6 @@ import time
 import tomli
 import threading
 import watchtower
-import yaml
 from dataclasses import dataclass
 from lightstreamer.client import SubscriptionListener, ItemUpdate
 
@@ -90,7 +89,7 @@ class DataSet():
         self.prev_ask = None
 
         os.makedirs(self.path, exist_ok=True)
-        self.resume_file(self.get_filepath(dt.datetime.now()))
+        self._resume_file(self._get_filepath(dt.datetime.now()))
 
         self.lock = threading.Lock()
 
@@ -107,7 +106,7 @@ class DataSet():
                     return func(self, *args, **kwargs)
         return inner
 
-    def get_filename(self, timestamp):
+    def _get_filename(self, timestamp):
         """Get filename based on timestamp. Format: epic_year-month-day-hour.ftr
         
         Args:
@@ -115,15 +114,15 @@ class DataSet():
         """
         return f'{self.epic}_{timestamp.strftime("%Y-%m-%d_%H-00")}.ftr'
 
-    def get_filepath(self, timestamp):
+    def _get_filepath(self, timestamp):
         """Get filepath based on timestamp. Format: epic_year-month-day-hour.ftr
         
         Args:
             timestamp (datetime64): Timestamp of one (usually last) sample in data.
         """
-        return os.path.join(self.path, self.get_filename(timestamp))
+        return os.path.join(self.path, self._get_filename(timestamp))
 
-    def resume_file(self, path):
+    def _resume_file(self, path):
         """Check if datafile exists. If yes, load data to resume collection.
         
         Args:
@@ -134,31 +133,19 @@ class DataSet():
             dft = pd.read_feather(path)
             self.dataset = list(dft.itertuples(index=False, name=None))
 
-    def dump_to_disk(self, timestamp):
-        """Check if it is time to dump data from RAM to disk.
-        If so, also save and empty dataframe.
+    @staticmethod
+    def _from_timestamp(timestamp):
+        """Convert timestamp in seconds from epoch to datetime.
 
+        Execution time on the order of 1 us.
+        
         Args:
-            timestamp (datetime64): Latest timestamp.
+            timestamp (int): Timestamp in seconds since epoch.
+
+        Returns:
+            datetime64: Timestamp.
         """
-        try:
-            prev_timestamp = self.dataset[-1][0]
-        except IndexError:
-            logging.debug(f'{self.epic} {self.descriptor} has no dataset to dump')
-        else:
-            if not timestamp.hour == prev_timestamp.hour:
-                logging.debug(f'Dumping {self.epic} {self.descriptor} to disk')
-
-                # Extract data to dump and clean list in RAM. We do this before to_feather()
-                # because otherwise we will miss many ticks updates while writing to disk 
-                # (if instance is overloaded we may miss ticks anyway)
-                dump = pd.DataFrame(self.dataset, columns=self.COLS)
-                self.dataset = []
-
-                # We save data every hour to save RAM (necessary for tick data, but do the same for candles)
-                # internal=True bypasses lock acquisiton, because this function is called via
-                # the callback, that has already locked the object.
-                self.to_feather(dump, internal=True)
+        return dt.datetime.fromtimestamp(float(timestamp)/1000) # local time of bar start time
 
     @acquire_lock
     def to_feather(self, df=None):
@@ -177,7 +164,7 @@ class DataSet():
             # Nothing to save
             logging.debug(f'{self.epic} {self.descriptor} dataset saving IndexError: {e}')
         else:
-            df.to_feather(self.get_filepath(timestamp), compression=self.compression)
+            df.to_feather(self._get_filepath(timestamp), compression=self.compression)
 
     @acquire_lock
     def append(self, timestamp, row):
@@ -190,23 +177,34 @@ class DataSet():
         """
         global last_streaming_update
         last_streaming_update = dt.datetime.now()
-        self.dump_to_disk(timestamp)
-        self.dataset.append(row)
 
-    @staticmethod
-    def _from_timestamp(timestamp):
-        """Convert timestamp in seconds from epoch to datetime.
+        try:
+            prev_timestamp = self.dataset[-1][0]
 
-        Execution time on the order of 1 us.
-        
-        Args:
-            timestamp (int): Timestamp in seconds since epoch.
+        except IndexError:
+            logging.debug(f'{self.epic} {self.descriptor} dataset is empty')
+            self.dataset.append(row)
 
-        Returns:
-            datetime64: Timestamp.
-        """
-        return dt.datetime.fromtimestamp(float(timestamp)/1000) # local time of bar start time
-    
+        else:
+            if not prev_timestamp.hour == timestamp.hour:
+                logging.debug(f'Dumping {self.epic} {self.descriptor} to disk')
+
+                # Extract data to dump and clean list in RAM.
+                dump = pd.DataFrame(self.dataset, columns=self.COLS)
+                self.dataset = []
+                self.dataset.append(row)
+
+                # We save data every hour to save RAM (necessary for tick data, but do the same for candles)
+                # internal=True bypasses lock acquisiton, because this function is called via
+                # the callback, that has already locked the object.
+                self.to_feather(dump, internal=True)
+
+            elif not prev_timestamp == timestamp:
+                self.dataset.append(row)
+
+            else:
+                logging.warning(f'{self.epic} {self.descriptor} not adding row, row with identical timestamp already added')
+            
 
 class DataSetBook(DataSet):
     """Data set for IG order book data stream."""

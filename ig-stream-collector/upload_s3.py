@@ -26,7 +26,7 @@ if __name__ == '__main__':
     year_week = dt.datetime.now().strftime("%Y-%V") # ISO 8601 week, same as pandas uses
 
     for bucket, path_prefix in buckets.items():
-        path_source = os.path.join(os.path.expanduser('~'), 'data', f'tick_{year_week}')
+        path_source = os.path.join(os.path.expanduser('~'), 'data', f'{path_prefix}_{year_week}')
         suffix_file = f'{year_week}.ftr' 
         # suffix_file = '2022-29.ftr' # DEBUG
         dirs = glob.glob(os.path.join(path_source, '*'))

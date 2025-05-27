@@ -1,2 +1,2 @@
 cd ~/ig-stream-collector/ig-stream-collector
-pipenv run python3 upload_s3.py
+poetry run python upload_s3.py
