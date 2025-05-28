@@ -27,7 +27,8 @@ if __name__ == '__main__':
     logging.warning('This script should only be run during non-trading hours '
                     '(weekend), so that full weeks can be concentrated')
 
-    for dataset in ['book', 'ohlcv_1m', 'tick']:
+    # for dataset in ['book', 'ohlcv_1m', 'tick']:
+    for dataset in ['book']:
         # ISO 8601 week, same as pandas uses
         path_source = os.path.join(os.path.expanduser('~'), 'data', f'{dataset}_{dt.datetime.now().strftime("%Y-%V")}')
         path_weekly = path_source # Place weekly aggregated data in same place for simpler drive cleaning

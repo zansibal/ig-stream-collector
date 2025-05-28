@@ -19,9 +19,9 @@ if __name__ == '__main__':
     )
 
     buckets = {
-        'ig-book': 'book',
-        'ig-ohlcv-1m': 'ohlcv_1m',
-        'ig-tick': 'tick',
+        'ig-order-book': 'book',
+        # 'ig-ohlcv-1m': 'ohlcv_1m',
+        # 'ig-tick': 'tick',
     }
     year_week = dt.datetime.now().strftime("%Y-%V") # ISO 8601 week, same as pandas uses
 

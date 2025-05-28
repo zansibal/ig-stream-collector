@@ -220,6 +220,10 @@ class DataSetBook(DataSet):
 
     def update(self, values):
         """Process tick update.
+
+        It is unclear how updates with empty levels look like. The
+        documentation states that all epics does not necessarily
+        populate all levels. So far, no such example has been found.
         
         Args:
             values (dict): Data from IG Streaming service.
@@ -231,11 +235,14 @@ class DataSetBook(DataSet):
                 try:
                     bid_price = round(float(values[f'BIDPRICE{k}'])*self.scaling_factor, 2)
                     bid_size = float(values[f'BIDSIZE{k}'])/self.lot_size
-                    ask_price = round(float(values[f'ASKPRICE{k}'])*self.scaling_factor, 2)
-                    ask_size = float(values[f'ASKSIZE{k}'])/self.lot_size
                 except (TypeError, ValueError):
                     bid_price = float('nan')
                     bid_size = float('nan')
+                
+                try:
+                    ask_price = round(float(values[f'ASKPRICE{k}'])*self.scaling_factor, 2)
+                    ask_size = float(values[f'ASKSIZE{k}'])/self.lot_size
+                except (TypeError, ValueError):
                     ask_price = float('nan')
                     ask_size = float('nan')
 
@@ -416,8 +423,8 @@ if __name__ == '__main__':
 
     # Subscribe to epics for tick data
     datasets_book = {}
-    datasets_ohlcv = {}
-    datasets_tick = {}
+    # datasets_ohlcv = {}
+    # datasets_tick = {}
     basedir = os.path.join(os.path.expanduser('~'), 'data')
     # Add one day, so that we can start collecting on Sunday,
     # and still get the correct week number
@@ -428,16 +435,16 @@ if __name__ == '__main__':
         datasets_book[epic] = DataSetBook(
             market_infos[epic], os.path.join(basedir, f'book_{dir_suffix}'), compression,
         )
-        datasets_ohlcv[epic] = DataSetOHLCV(
-            market_infos[epic], os.path.join(basedir, f'ohlcv_1m_{dir_suffix}'), compression,
-        )
-        datasets_tick[epic] = DataSetTick(
-            market_infos[epic], os.path.join(basedir, f'tick_{dir_suffix}'), compression,
-        )
+        # datasets_ohlcv[epic] = DataSetOHLCV(
+        #     market_infos[epic], os.path.join(basedir, f'ohlcv_1m_{dir_suffix}'), compression,
+        # )
+        # datasets_tick[epic] = DataSetTick(
+        #     market_infos[epic], os.path.join(basedir, f'tick_{dir_suffix}'), compression,
+        # )
         
     link.subscribe_prices(StreamListener(datasets_book), epics)
-    link.subscribe_candles(StreamListener(datasets_ohlcv), epics, '1MINUTE')
-    link.subscribe_ticks(StreamListener(datasets_tick), epics)
+    # link.subscribe_candles(StreamListener(datasets_ohlcv), epics, '1MINUTE')
+    # link.subscribe_ticks(StreamListener(datasets_tick), epics)
 
     # Loop until market closes on Friday 23:00 local time
     try:
@@ -489,16 +496,16 @@ if __name__ == '__main__':
         except Exception as e:
             logging.exception(f'Saving order book dataset for epic {dataset.epic} caused exception: {e}')
 
-    for dataset in datasets_ohlcv.values():
-        try:
-            dataset.to_feather()
-        except Exception as e:
-            logging.exception(f'Saving OHCLV dataset for epic {dataset.epic} caused exception: {e}')
+    # for dataset in datasets_ohlcv.values():
+    #     try:
+    #         dataset.to_feather()
+    #     except Exception as e:
+    #         logging.exception(f'Saving OHCLV dataset for epic {dataset.epic} caused exception: {e}')
 
-    for dataset in datasets_tick.values():
-        try:
-            dataset.to_feather()
-        except Exception as e:
-            logging.exception(f'Saving tick dataset for epic {dataset.epic} caused exception: {e}')
+    # for dataset in datasets_tick.values():
+    #     try:
+    #         dataset.to_feather()
+    #     except Exception as e:
+    #         logging.exception(f'Saving tick dataset for epic {dataset.epic} caused exception: {e}')
 
     link.deinit() # Unsubscribe and disconnect
