@@ -233,14 +233,16 @@ class DataSetBook(DataSet):
             book_entry = [timestamp, values['DLG_FLAG'].strip()]
             for k in range(1, 6):
                 try:
-                    bid_price = round(float(values[f'BIDPRICE{k}'])*self.scaling_factor, 2)
+                    bid_price = float(values[f'BIDPRICE{k}'])
+                    # bid_price = round(float(values[f'BIDPRICE{k}'])*self.scaling_factor, 2)
                     bid_size = float(values[f'BIDSIZE{k}'])/self.lot_size
                 except (TypeError, ValueError):
                     bid_price = float('nan')
                     bid_size = float('nan')
                 
                 try:
-                    ask_price = round(float(values[f'ASKPRICE{k}'])*self.scaling_factor, 2)
+                    ask_price = float(values[f'ASKPRICE{k}'])
+                    # ask_price = round(float(values[f'ASKPRICE{k}'])*self.scaling_factor, 2)
                     ask_size = float(values[f'ASKSIZE{k}'])/self.lot_size
                 except (TypeError, ValueError):
                     ask_price = float('nan')
@@ -279,10 +281,14 @@ class DataSetOHLCV(DataSet):
 
                 if not all([v == '' for k, v in values.items() if k.startswith('BID_')]):
                     bid = OHLC(
-                        round(float(values['BID_OPEN']) *self.scaling_factor, 2),
-                        round(float(values['BID_HIGH']) *self.scaling_factor, 2),
-                        round(float(values['BID_LOW'])  *self.scaling_factor, 2),
-                        round(float(values['BID_CLOSE'])*self.scaling_factor, 2),
+                        float(values['BID_OPEN']),
+                        float(values['BID_HIGH']),
+                        float(values['BID_LOW']),
+                        float(values['BID_CLOSE']),
+                        # round(float(values['BID_OPEN']) *self.scaling_factor, 2),
+                        # round(float(values['BID_HIGH']) *self.scaling_factor, 2),
+                        # round(float(values['BID_LOW'])  *self.scaling_factor, 2),
+                        # round(float(values['BID_CLOSE'])*self.scaling_factor, 2),
                     )
                     self.prev_bid = bid
                     
@@ -294,10 +300,14 @@ class DataSetOHLCV(DataSet):
                 
                 if not all([v == '' for k, v in values.items() if k.startswith('OFR_')]):
                     ask = OHLC(
-                        round(float(values['OFR_OPEN']) *self.scaling_factor, 2),
-                        round(float(values['OFR_HIGH']) *self.scaling_factor, 2),
-                        round(float(values['OFR_LOW'])  *self.scaling_factor, 2),
-                        round(float(values['OFR_CLOSE'])*self.scaling_factor, 2),
+                        float(values['OFR_OPEN']),
+                        float(values['OFR_HIGH']),
+                        float(values['OFR_LOW']),
+                        float(values['OFR_CLOSE']),
+                        # round(float(values['OFR_OPEN']) *self.scaling_factor, 2),
+                        # round(float(values['OFR_HIGH']) *self.scaling_factor, 2),
+                        # round(float(values['OFR_LOW'])  *self.scaling_factor, 2),
+                        # round(float(values['OFR_CLOSE'])*self.scaling_factor, 2),
                     )
                     self.prev_ask = ask
                     
@@ -346,6 +356,7 @@ class DataSetTick(DataSet):
 
                 if values['BID'] is not None:
                     bid = float(values['BID'])
+                    # bid = round(float(values['BID'])*self.scaling_factor, 2),
                     self.prev_bid = bid
                 elif self.prev_bid is not None:
                     bid = self.prev_bid
@@ -354,6 +365,7 @@ class DataSetTick(DataSet):
                 
                 if values['OFR'] is not None:
                     ask = float(values['OFR'])
+                    # ask = round(float(values['OFR'])*self.scaling_factor, 2),
                     self.prev_ask = ask
                 elif self.prev_ask is not None:
                     ask = self.prev_ask
