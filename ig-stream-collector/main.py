@@ -341,7 +341,7 @@ class DataSetTick(DataSet):
             values (dict): Data from IG Streaming service.
         """
         try:
-            if values['UTM'] is not None and (values['BID'] is not None or values['OFR'] is not None):
+            if values['UTM'] not in [None, ''] and (values['BID'] not in [None, ''] or values['OFR'] not in [None, '']):
                 timestamp = self._from_timestamp(values['UTM'])
 
                 if values['BID'] is not None:
@@ -400,6 +400,9 @@ def test_localtime_is_correct_timezone(local_tz):
     now_utc = dt.datetime.now(pytz.utc).replace(second=0, microsecond=0)
     assert now_local == now_utc.astimezone(pytz.timezone(local_tz)).replace(tzinfo=None)
 
+def chunker(seq, size):
+    return (seq[pos:pos + size] for pos in range(0, len(seq), size))
+
 
 if __name__ == '__main__':
     logging.basicConfig(
@@ -419,7 +422,9 @@ if __name__ == '__main__':
         epics = tomli.load(f)['epics']
 
     link = ig.Link() # Log in and create session
-    market_infos = dict(sorted(link.fetch_markets_by_epics(epics).items()))
+    market_infos = {}
+    for chunk in chunker(epics, 50): # 50 is the API limit
+        market_infos.update(dict(sorted(link.fetch_markets_by_epics(chunk).items())))
 
     # Subscribe to epics for tick data
     datasets_book = {}
