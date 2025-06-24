@@ -180,30 +180,35 @@ class DataSet():
 
         try:
             prev_timestamp = self.dataset[-1][0]
+            prev_row = self.dataset[-1]
 
         except IndexError:
             logging.debug(f'{self.epic} {self.descriptor} dataset is empty')
             self.dataset.append(row)
 
         else:
-            if not prev_timestamp.hour == timestamp.hour:
-                logging.debug(f'Dumping {self.epic} {self.descriptor} to disk')
+            if not prev_row[1:] == row[1:]: # Check everyting but timestamp
+                # We don't add rows with exact same values (how does this affect OHLCV streams, if used?)
+                # Avoid bloating order book. Duplicate successive rows does NOT add to volume; they have no value.
 
-                # Extract data to dump and clean list in RAM.
-                dump = pd.DataFrame(self.dataset, columns=self.COLS)
-                self.dataset = []
-                self.dataset.append(row)
+                if not prev_timestamp.hour == timestamp.hour:
+                    logging.debug(f'Dumping {self.epic} {self.descriptor} to disk')
 
-                # We save data every hour to save RAM (necessary for tick data, but do the same for candles)
-                # internal=True bypasses lock acquisiton, because this function is called via
-                # the callback, that has already locked the object.
-                self.to_feather(dump, internal=True)
+                    # Extract data to dump and clean list in RAM.
+                    dump = pd.DataFrame(self.dataset, columns=self.COLS)
+                    self.dataset = []
+                    self.dataset.append(row)
 
-            elif not prev_timestamp == timestamp:
-                self.dataset.append(row)
+                    # We save data every hour to save RAM (necessary for tick data, but do the same for candles)
+                    # internal=True bypasses lock acquisiton, because this function is called via
+                    # the callback, that has already locked the object.
+                    self.to_feather(dump, internal=True)
+
+                else:
+                    self.dataset.append(row)
 
             else:
-                logging.warning(f'{self.epic} {self.descriptor} not adding row, row with identical timestamp already added')
+                logging.debug(f'{self.epic} {self.descriptor} not adding row, because previous row identical')
             
 
 class DataSetBook(DataSet):
