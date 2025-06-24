@@ -4,6 +4,8 @@ import datetime as dt
 import glob
 import logging
 import os
+import re
+import sys
 
 def get_filename(directory, timestamp):
     # ISO 8601 week, same as pandas uses
@@ -18,17 +20,26 @@ if __name__ == '__main__':
         ],
     )
 
+    if len(sys.argv) > 1:
+        if re.fullmatch(r'\d{4}-\d{2}', sys.argv[1]) is not None:
+            year_week = sys.argv[1]
+        else:
+            print(f'Invalid argument {sys.argv[1]}. Exiting.')
+            exit()
+    else:
+        year_week = dt.datetime.now().strftime('%Y-%V') # ISO 8601 week, same as pandas uses
+
+    print(f'Uploading week {year_week}')
+
     buckets = {
         'ig-order-book': 'book',
         # 'ig-ohlcv-1m': 'ohlcv_1m',
         # 'ig-tick': 'tick',
     }
-    year_week = dt.datetime.now().strftime("%Y-%V") # ISO 8601 week, same as pandas uses
 
     for bucket, path_prefix in buckets.items():
         path_source = os.path.join(os.path.expanduser('~'), 'data', f'{path_prefix}_{year_week}')
         suffix_file = f'{year_week}.ftr' 
-        # suffix_file = '2022-29.ftr' # DEBUG
         dirs = glob.glob(os.path.join(path_source, '*'))
         s3 = boto3.resource('s3')
 

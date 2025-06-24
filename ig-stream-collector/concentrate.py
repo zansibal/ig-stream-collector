@@ -31,19 +31,19 @@ if __name__ == '__main__':
     
     if len(sys.argv) > 1:
         if re.fullmatch(r'\d{4}-\d{2}', sys.argv[1]) is not None:
-            arg = sys.argv[1]
+            year_week = sys.argv[1]
         else:
             print(f'Invalid argument {sys.argv[1]}. Exiting.')
             exit()
     else:
-        arg = dt.datetime.now().strftime('%Y-%V')
+        year_week = dt.datetime.now().strftime('%Y-%V')
 
-    print(f'Concentrating week {arg}')
+    print(f'Concentrating week {year_week}')
 
     # for dataset in ['book', 'ohlcv_1m', 'tick']:
     for dataset in ['book']:
         # ISO 8601 week, same as pandas uses
-        path_source = os.path.join(os.path.expanduser('~'), 'data', f'{dataset}_{arg}')
+        path_source = os.path.join(os.path.expanduser('~'), 'data', f'{dataset}_{year_week}')
         path_weekly = path_source # Place weekly aggregated data in same place for simpler drive cleaning
         dirs = glob.glob(os.path.join(path_source, '*'))
 
