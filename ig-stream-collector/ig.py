@@ -180,6 +180,7 @@ class Link():
                       'TIMESTAMP', 'DLG_FLAG'],
         )
         subscription.setDataAdapter('Pricing')
+        logging.debug(f'Subscribing PRICE data for {epics}')
         self._subscribe(subscription, callback)
 
     def subscribe_quotes(self, callback, epics):

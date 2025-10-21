@@ -39,10 +39,11 @@ class StreamListener(SubscriptionListener):
         Args:
             update (ItemUpdate): Data from IG Streaming service.
         """
-        global last_streaming_update
-        last_streaming_update = dt.datetime.now()
-
         try:
+            # logging.debug(f'{update.getItemName()}, {update.getFields()}')
+            global last_streaming_update
+            last_streaming_update = dt.datetime.now()
+            
             stream_name_split = update.getItemName().split(':')
             values = update.getFields()
             # print(stream_name_split, values) # For DEBUG
@@ -260,6 +261,7 @@ class DataSetBook(DataSet):
                     ask_size,
                 ])
 
+            logging.debug(f'Receiving book update at {timestamp} with {book_entry}')
             self.append(timestamp, tuple(book_entry))
 
         except Exception as e:
@@ -422,14 +424,19 @@ def chunker(seq, size):
 
 
 if __name__ == '__main__':
+    stream_handler = logging.StreamHandler()
+    stream_handler.setLevel(logging.INFO)
+
+    file_handler = logging.FileHandler('../ig-streaming-service.log')
+    file_handler.setLevel(logging.DEBUG)
+
     logging.basicConfig(
         level = logging.INFO,
         format = '%(asctime)s %(levelname)s %(message)s',
         handlers = [
-            watchtower.CloudWatchLogHandler(
-                log_group_name='ig-streaming-service',
-                level=logging.INFO),
-            logging.StreamHandler(), # Prints to stdout
+            watchtower.CloudWatchLogHandler(log_group_name='ig-streaming-service', level=logging.INFO),
+            stream_handler, # Prints to stdout
+            file_handler,
         ],
     )
 
@@ -440,7 +447,7 @@ if __name__ == '__main__':
 
     link = ig.Link() # Log in and create session
     market_infos = {}
-    for chunk in chunker(epics, 50): # 50 is the API limit
+    for chunk in chunker(epics, 28): # 50 is the API limit
         market_infos.update(dict(sorted(link.fetch_markets_by_epics(chunk).items())))
 
     # Subscribe to epics for tick data
