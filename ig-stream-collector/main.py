@@ -16,6 +16,7 @@ import ig
 from aws_config import TOPIC_ARN
 MAX_PAUSE_STREAMING = 30
 MAX_REINITS = 60
+MAX_REINIT_BACKOFF = 600 # In seconds, upper limit of delay between failed reinits
 last_streaming_update = None
 
 @dataclass
@@ -476,6 +477,7 @@ if __name__ == '__main__':
     # link.subscribe_ticks(StreamListener(datasets_tick), epics)
 
     # Loop until market closes on Friday 23:00 local time
+    reinit_failures = 0 # Consecutive failed reinits
     try:
         now = dt.datetime.now()
         while not (now.weekday() == 4 and now.hour == 23):
@@ -491,7 +493,14 @@ if __name__ == '__main__':
                             )
 
                             if link.cur_init < MAX_REINITS:
-                                link.reinit() # Verified manually that it works
+                                if link.reinit():
+                                    reinit_failures = 0
+                                else:
+                                    # Back off exponentially (on top of the loop sleep) to not hammer IG
+                                    reinit_failures += 1
+                                    backoff = min(30 * 2**(reinit_failures-1), MAX_REINIT_BACKOFF)
+                                    logging.warning(f'Reinit failed ({reinit_failures} in a row), retrying in {backoff}s')
+                                    time.sleep(backoff)
                             else:
                                 logging.warning(f'Max number of reinits reached for this week - exiting')
                                 send_notification(

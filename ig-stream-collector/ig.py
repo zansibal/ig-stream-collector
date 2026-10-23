@@ -25,6 +25,7 @@ class Link():
         """Initialize."""
         self.connected = False
         logging.info('Connecting to IG REST trading API and creating session')
+        self.cur_init += 1
         self.connect()
         logging.info('IG Labs web API connection established')
         print('IG Labs web API connection established')
@@ -41,17 +42,25 @@ class Link():
     def deinit(self):
         """Deinitialize."""
         # Unsubscribe manually, because we want that done before timeout timer starts
+        # Every step is best-effort: if the session is already dead (e.g. expired tokens),
+        # teardown failing must not prevent reinit() from creating a new connection.
         self.connected = False
-        self.ig_stream_service.unsubscribe_all()
+        try:
+            self.ig_stream_service.unsubscribe_all()
+        except Exception as e:
+            logging.warning(f'Failed to unsubscribe from Lightstreamer (continuing): {e}')
         t = threading.Thread(target=self.ig_stream_service.disconnect)
         t.daemon = True # Kills thread when main thread ends
         t.start()
         t.join(self.DISCONNECT_TIMEOUT)
         if t.is_alive():
-            # How do we handle reinit in this situation? Do we really need to .logout() before creating a new connection?
             logging.warning(f'Timeout ({self.DISCONNECT_TIMEOUT}s) reached for closing urlopen-connection to Lightstreamer. Continuing, but thread is still alive.')
         else:
-            self.ig_service.logout() # This only works if disconnect works
+            try:
+                self.ig_service.logout() # This only works if disconnect works
+            except Exception as e:
+                # Typically TokenInvalidException when the session has already expired
+                logging.warning(f'Failed to log out of IG REST API (continuing): {e}')
 
     def reinit(self):
         """
@@ -60,6 +69,8 @@ class Link():
         Returns:
             bool: True if no exception occured.
         """
+        # Count every attempt, so failed reinits also count towards any max limit
+        self.cur_init += 1
         try:
             logging.info('Reconnecting to REST and Streaming API')
             self.deinit()
@@ -98,7 +109,6 @@ class Link():
         self.account_id = config.acc_number
 
         logging.info('Connecting to IG Streaming API and creating session')
-        self.cur_init += 1
         self.ig_stream_service = IGStreamService(self.ig_service)
         self.ig_session = self.ig_stream_service.create_session()
         self.connected = True
